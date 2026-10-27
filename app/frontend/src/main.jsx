@@ -2,7 +2,7 @@ import { Component, useCallback, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API = import.meta.env.VITE_API_URL || '';
 const request = async (path, options = {}) => {
   const response = await fetch(`${API}${path}`, { headers: { 'Content-Type': 'application/json' }, ...options });
   if (!response.ok) { const body = await response.json().catch(() => ({})); throw new Error(body.error || 'Request failed.'); }

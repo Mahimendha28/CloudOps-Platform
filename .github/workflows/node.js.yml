@@ -144,8 +144,7 @@ jobs:
           context: ./app/frontend
           push: true
           build-args: |
-            VITE_API_URL=http://localhost:3001
+            VITE_API_URL=
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/cloudops-frontend:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/cloudops-frontend:sha-${{ github.sha }}
-
