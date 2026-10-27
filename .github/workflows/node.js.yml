@@ -1,0 +1,94 @@
+
+name: CloudOps CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand(\"ping\").ok'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: app/backend
+        run: npm ci
+
+      - name: Start backend and check health
+        working-directory: app/backend
+        env:
+          PORT: 3001
+          MONGODB_URI: mongodb://127.0.0.1:27017
+          MONGODB_DB: cloudops_ci
+          FRONTEND_ORIGIN: http://localhost:5173
+        run: |
+          node src/server.js > backend.log 2>&1 &
+          echo $! > backend.pid
+
+          for i in {1..20}; do
+            if curl --silent --fail http://127.0.0.1:3001/health > health.json; then
+              cat health.json
+              exit 0
+            fi
+            sleep 2
+          done
+
+          cat backend.log
+          exit 1
+
+      - name: Stop backend
+        if: always()
+        working-directory: app/backend
+        run: |
+          if [ -f backend.pid ]; then
+            kill "$(cat backend.pid)" || true
+          fi
+
+      - name: Run backend API tests
+        working-directory: app/backend
+        run: npm test
+
+  frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: app/frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: app/frontend
+        run: npm run build
