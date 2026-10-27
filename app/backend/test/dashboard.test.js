@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 test('dashboard returns all expected numeric statistics', async () => {
   const response = await fetch('http://127.0.0.1:3001/api/dashboard');
 
-  assert.equal(response.status, 201);
+  assert.equal(response.status, 200);
 
   const data = await response.json();
 
