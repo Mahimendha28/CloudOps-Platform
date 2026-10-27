@@ -1,0 +1,65 @@
+
+services:
+  mongodb:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test:
+        - CMD
+        - mongosh
+        - --quiet
+        - --eval
+        - "db.adminCommand('ping').ok"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - cloudops
+
+  backend:
+    image: mahithakkar/cloudops-backend:latest
+    restart: unless-stopped
+    environment:
+      PORT: "3001"
+      MONGODB_URI: mongodb://mongodb:27017
+      MONGODB_DB: cloudops
+      FRONTEND_ORIGIN: "http://localhost"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - cloudops
+
+  frontend:
+    image: mahithakkar/cloudops-frontend:latest
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /home/ubuntu/cloudops-tls:/etc/nginx/ssl:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - cloudops
+
+volumes:
+  mongodb_data:
+
+networks:
+  cloudops:
+    driver: bridge
