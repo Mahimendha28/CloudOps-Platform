@@ -67,6 +67,10 @@ jobs:
             kill "$(cat backend.pid)" || true
           fi
 
+      - name: Run backend API tests
+        working-directory: app/backend
+        run: npm test
+
   frontend:
     runs-on: ubuntu-latest
 
