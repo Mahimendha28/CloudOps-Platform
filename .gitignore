@@ -1,0 +1,13 @@
+# Dependencies and build artifacts
+node_modules/
+dist/
+
+# Environment and local database files
+.env
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Logs
+*.log
