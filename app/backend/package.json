@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "migrate:sqlite": "node scripts/migrate-sqlite-to-mongodb.js"
+    "migrate:sqlite": "node scripts/migrate-sqlite-to-mongodb.js",
+    "test": "node --test"
   },
   "dependencies": {
     "cors": "^2.8.5",
