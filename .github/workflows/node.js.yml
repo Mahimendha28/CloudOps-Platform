@@ -170,7 +170,6 @@ jobs:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ap-south-1
 
-
       - name: Deploy published images through SSM
         shell: bash
         env:
@@ -234,3 +233,10 @@ jobs:
 
           echo "Timed out waiting for SSM. Command ID: $COMMAND_ID"
           exit 1
+  inspect-oidc:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - name: Inspect GitHub OIDC claims
+        uses: github/actions-oidc-debugger@main
