@@ -2,16 +2,16 @@
 services:
   mongodb:
     image: mongo:7
+    command: ["mongod", "--auth", "--bind_ip_all"]
     restart: unless-stopped
     volumes:
       - mongodb_data:/data/db
+    env_file:
+      - /home/ubuntu/cloudops-mongodb-admin.env
     healthcheck:
       test:
-        - CMD
-        - mongosh
-        - --quiet
-        - --eval
-        - "db.adminCommand('ping').ok"
+        - CMD-SHELL
+        - 'mongosh --quiet --username "$$MONGO_INITDB_ROOT_USERNAME" --password "$$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --eval "db.adminCommand({ ping: 1 }).ok" | grep -q 1'
       interval: 10s
       timeout: 5s
       retries: 5
@@ -22,9 +22,10 @@ services:
   backend:
     image: mahithakkar/cloudops-backend:latest
     restart: unless-stopped
+    env_file:
+      - /home/ubuntu/cloudops-secrets.env
     environment:
       PORT: "3001"
-      MONGODB_URI: mongodb://mongodb:27017
       MONGODB_DB: cloudops
       FRONTEND_ORIGIN: "http://localhost"
     depends_on:
