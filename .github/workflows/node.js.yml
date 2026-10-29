@@ -233,10 +233,3 @@ jobs:
 
           echo "Timed out waiting for SSM. Command ID: $COMMAND_ID"
           exit 1
-  inspect-oidc:
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-    steps:
-      - name: Inspect GitHub OIDC claims
-        uses: github/actions-oidc-debugger@main
