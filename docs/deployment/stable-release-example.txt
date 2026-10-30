@@ -1,0 +1,9 @@
+# Example only — not an active EC2 configuration
+
+STABLE_RELEASE=<40-character-release-SHA>
+
+BACKEND_IMAGE=mahithakkar/cloudops-backend:sha-<40-character-release-SHA>
+
+FRONTEND_IMAGE=mahithakkar/cloudops-frontend:sha-<40-character-release-SHA>
+
+DATABASE_IMAGE=mongo:7
