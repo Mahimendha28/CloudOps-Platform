@@ -164,11 +164,72 @@ jobs:
       id-token: write
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Configure AWS credentials using OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ap-south-1
+
+      - name: Transfer rollback script to EC2 through SSM
+        shell: bash
+        env:
+          INSTANCE_ID: i-005fa65da34dd472c
+        run: |
+          set -euo pipefail
+
+          SCRIPT_CONTENT=$(base64 -w 0 deployment/scripts/rollback.sh)
+
+          PARAMETERS=$(jq -nc --arg script "$SCRIPT_CONTENT" '{
+            commands: [
+              "set -e",
+              "mkdir -p /home/ubuntu/scripts",
+              "printf '\''%s'\'' '\''" + $script + "'\'' | base64 -d > /home/ubuntu/scripts/rollback.sh",
+              "chown ubuntu:ubuntu /home/ubuntu/scripts/rollback.sh",
+              "chmod 750 /home/ubuntu/scripts/rollback.sh",
+              "bash -n /home/ubuntu/scripts/rollback.sh"
+            ]
+          }')
+
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Transfer CloudOps rollback script" \
+            --parameters "$PARAMETERS" \
+            --query 'Command.CommandId' \
+            --output text)
+
+          echo "SSM transfer command: $COMMAND_ID"
+
+          for attempt in $(seq 1 36); do
+            STATUS=$(aws ssm get-command-invocation \
+              --command-id "$COMMAND_ID" \
+              --instance-id "$INSTANCE_ID" \
+              --query 'Status' \
+              --output text 2>/dev/null || true)
+
+            case "$STATUS" in
+              Success)
+                echo "Rollback script transferred and syntax checked."
+                exit 0
+                ;;
+              Failed|Cancelled|TimedOut|Undeliverable|Terminated|InvalidPlatform)
+                echo "Rollback script transfer failed: $STATUS"
+                aws ssm get-command-invocation \
+                  --command-id "$COMMAND_ID" \
+                  --instance-id "$INSTANCE_ID" \
+                  --output json
+                exit 1
+                ;;
+            esac
+
+            sleep 10
+          done
+
+          echo "Timed out waiting for rollback script transfer."
+          exit 1
 
       - name: Deploy published images through SSM
         shell: bash
