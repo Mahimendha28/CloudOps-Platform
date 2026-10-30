@@ -80,7 +80,8 @@ chmod 600 "$TEMP_TAGS_FILE"
 mv "$TEMP_TAGS_FILE" "$IMAGE_TAGS_FILE"
 
 log "Active image tags changed to requested release."
-
+chown ubuntu:ubuntu "$IMAGE_TAGS_FILE"
+chmod 600 "$IMAGE_TAGS_FILE"
 # --------------------------------------------------
 # 5. Deploy requested release
 # --------------------------------------------------
@@ -172,6 +173,8 @@ log "Restoring previous release..."
 if ! cp "$BACKUP_FILE" "$IMAGE_TAGS_FILE"; then
     fail "Could not restore previous image tags. Backup retained."
 fi
+chown ubuntu:ubuntu "$IMAGE_TAGS_FILE"
+chmod 600 "$IMAGE_TAGS_FILE"
 
 if ! docker compose \
     --env-file "$IMAGE_TAGS_FILE" \
