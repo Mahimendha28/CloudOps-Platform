@@ -20,7 +20,7 @@ services:
       - cloudops
 
   backend:
-    image: mahithakkar/cloudops-backend:latest
+    image: mahithakkar/cloudops-backend:${BACKEND_TAG:-latest}
     restart: unless-stopped
     env_file:
       - /home/ubuntu/cloudops-secrets.env
@@ -45,13 +45,10 @@ services:
       - cloudops
 
   frontend:
-    image: mahithakkar/cloudops-frontend:latest
+    image: mahithakkar/cloudops-frontend:${FRONTEND_TAG:-latest}
     restart: unless-stopped
     ports:
       - "80:80"
-      - "443:443"
-    volumes:
-      - /home/ubuntu/cloudops-tls:/etc/nginx/ssl:ro
     depends_on:
       backend:
         condition: service_healthy
