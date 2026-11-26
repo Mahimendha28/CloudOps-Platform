@@ -167,25 +167,40 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Show OIDC identity claims (temporary diagnostic)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ID_TOKEN=$(curl --silent --show-error --fail \
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com" \
+            | jq --raw-output '.value')
+          export ID_TOKEN
+          node -e 'const claims = JSON.parse(Buffer.from(process.env.ID_TOKEN.split(".")[1], "base64url")); console.log(JSON.stringify({ aud: claims.aud, sub: claims.sub, repository: claims.repository, ref: claims.ref, event_name: claims.event_name }, null, 2));'
+
       - name: Configure AWS credentials using OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ap-south-1
 
-      - name: Transfer rollback script to EC2 through SSM
+      - name: Transfer deployment files to EC2 through SSM
         shell: bash
         env:
-          INSTANCE_ID: i-005fa65da34dd472c
+          INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
         run: |
           set -euo pipefail
 
           SCRIPT_CONTENT=$(base64 -w 0 deployment/scripts/rollback.sh)
+          COMPOSE_CONTENT=$(base64 -w 0 compose.ec2.yaml)
 
-          PARAMETERS=$(jq -nc --arg script "$SCRIPT_CONTENT" '{
+          PARAMETERS=$(jq -nc --arg script "$SCRIPT_CONTENT" --arg compose "$COMPOSE_CONTENT" '{
             commands: [
               "set -e",
               "mkdir -p /home/ubuntu/scripts",
+              "printf '\''%s'\'' '\''" + $compose + "'\'' | base64 -d > /home/ubuntu/compose.ec2.yaml",
+              "chown ubuntu:ubuntu /home/ubuntu/compose.ec2.yaml",
+              "chmod 640 /home/ubuntu/compose.ec2.yaml",
               "printf '\''%s'\'' '\''" + $script + "'\'' | base64 -d > /home/ubuntu/scripts/rollback.sh",
               "chown ubuntu:ubuntu /home/ubuntu/scripts/rollback.sh",
               "chmod 750 /home/ubuntu/scripts/rollback.sh",
@@ -234,7 +249,7 @@ jobs:
       - name: Deploy published images through SSM
         shell: bash
         env:
-          INSTANCE_ID: i-005fa65da34dd472c
+          INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
           IMAGE_TAG: sha-${{ github.sha }}
         run: |
           set -euo pipefail
