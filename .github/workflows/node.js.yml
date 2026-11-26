@@ -261,7 +261,7 @@ jobs:
               "chown ubuntu:ubuntu /home/ubuntu/cloudops-image-tags.env",
               "chmod 600 /home/ubuntu/cloudops-image-tags.env",
               "sudo docker compose --env-file /home/ubuntu/cloudops-image-tags.env -f /home/ubuntu/compose.ec2.yaml pull backend frontend",
-              "sudo docker compose --env-file /home/ubuntu/cloudops-image-tags.env -f /home/ubuntu/compose.ec2.yaml up -d --no-deps backend frontend",
+              "sudo docker compose --env-file /home/ubuntu/cloudops-image-tags.env -f /home/ubuntu/compose.ec2.yaml up -d"
               "sudo docker compose --env-file /home/ubuntu/cloudops-image-tags.env -f /home/ubuntu/compose.ec2.yaml ps"
             ]
           }')
